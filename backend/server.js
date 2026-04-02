@@ -4,13 +4,20 @@ const cors = require('cors');
 
 const app = express();
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 
+// Routes
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
+
+// Test route
 app.get('/', (req, res) => {
   res.json({ message: 'Secure EHR API is running' });
 });
 
+// Connect to MongoDB
 const MONGO_URI = 'mongodb://10952985_db_user:AvBbxArsAIZnchm8@ac-oyd1ssp-shard-00-00.ak33s2v.mongodb.net:27017,ac-oyd1ssp-shard-00-01.ak33s2v.mongodb.net:27017,ac-oyd1ssp-shard-00-02.ak33s2v.mongodb.net:27017/secureEHR?authSource=admin&tls=true&directConnection=false';
 
 mongoose.connect(MONGO_URI)
