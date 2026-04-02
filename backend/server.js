@@ -1,0 +1,25 @@
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+app.get('/', (req, res) => {
+  res.json({ message: 'Secure EHR API is running' });
+});
+
+const MONGO_URI = 'mongodb://10952985_db_user:AvBbxArsAIZnchm8@ac-oyd1ssp-shard-00-00.ak33s2v.mongodb.net:27017,ac-oyd1ssp-shard-00-01.ak33s2v.mongodb.net:27017,ac-oyd1ssp-shard-00-02.ak33s2v.mongodb.net:27017/secureEHR?authSource=admin&tls=true&directConnection=false';
+
+mongoose.connect(MONGO_URI)
+  .then(() => {
+    console.log('Connected to MongoDB Atlas');
+    app.listen(5000, () => {
+      console.log('Server running on port 5000');
+    });
+  })
+  .catch((error) => {
+    console.log('MongoDB connection error:', error);
+  });
