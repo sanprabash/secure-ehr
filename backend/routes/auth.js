@@ -66,15 +66,20 @@ router.post('/login', async (req, res) => {
     );
 
     res.json({
-      token,
-      user: {
-        id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        role: user.role
-      }
-    });
+  token,
+  user: {
+    id: user._id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    role: user.role,
+    dateOfBirth: user.dateOfBirth,
+    nationalId: user.nationalId,
+    bloodGroup: user.bloodGroup,
+    phoneNumber: user.phoneNumber,
+    address: user.address
+  }
+});
 
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
