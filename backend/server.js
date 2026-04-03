@@ -12,6 +12,9 @@ app.use(express.json());
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
 
+const patientRoutes = require('./routes/patient');
+app.use('/api/patient', patientRoutes);
+
 // Test route
 app.get('/', (req, res) => {
   res.json({ message: 'Secure EHR API is running' });
