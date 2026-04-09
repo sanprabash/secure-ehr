@@ -13,6 +13,8 @@ import MyPatients from './pages/doctor/MyPatients';
 import ViewPatientRecords from './pages/doctor/ViewPatientRecords';
 import DoctorNotifications from './pages/doctor/Notifications';
 import DoctorMyProfile from './pages/doctor/MyProfile';
+import AdminDashboard from './pages/admin/Dashboard';
+import ManageDoctors from './pages/admin/ManageDoctors';
 
 function App() {
   return (
@@ -32,6 +34,8 @@ function App() {
         <Route path="/doctor/patients/:patientId/records" element={<ViewPatientRecords />} />
         <Route path="/doctor/notifications" element={<DoctorNotifications />} />
         <Route path="/doctor/profile" element={<DoctorMyProfile />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/doctors" element={<ManageDoctors />} />
       </Routes>
     </Router>
   );
