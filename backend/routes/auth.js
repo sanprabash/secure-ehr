@@ -4,32 +4,46 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-//  REGISTER (Patient only) 
+//  REGISTER 
 router.post('/register', async (req, res) => {
   try {
-    const { firstName, lastName, email, password, dateOfBirth, nationalId, bloodGroup, phoneNumber, address } = req.body;
+    const {
+      firstName,
+      lastName,
+      email,
+      password,
+      role,
+      dateOfBirth,
+      nationalId,
+      bloodGroup,
+      phoneNumber,
+      address,
+      slmcNumber,
+      specialisation,
+      hospital
+    } = req.body;
 
-    // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'Email already registered' });
     }
 
-    // Encrypt password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new patient
     const user = new User({
       firstName,
       lastName,
       email,
       password: hashedPassword,
-      role: 'patient',
+      role: role || 'patient',
       dateOfBirth,
       nationalId,
       bloodGroup,
       phoneNumber,
-      address
+      address,
+      slmcNumber,
+      specialisation,
+      hospital
     });
 
     await user.save();
@@ -41,24 +55,21 @@ router.post('/register', async (req, res) => {
   }
 });
 
-//  LOGIN (All roles) 
+//  LOGIN 
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find user by email
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
-    // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
-    // Create JWT token
     const token = jwt.sign(
       { userId: user._id, role: user.role },
       'securehrjwtsecret2026',
@@ -66,20 +77,23 @@ router.post('/login', async (req, res) => {
     );
 
     res.json({
-  token,
-  user: {
-    id: user._id,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    email: user.email,
-    role: user.role,
-    dateOfBirth: user.dateOfBirth,
-    nationalId: user.nationalId,
-    bloodGroup: user.bloodGroup,
-    phoneNumber: user.phoneNumber,
-    address: user.address
-  }
-});
+      token,
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        dateOfBirth: user.dateOfBirth,
+        nationalId: user.nationalId,
+        bloodGroup: user.bloodGroup,
+        phoneNumber: user.phoneNumber,
+        address: user.address,
+        slmcNumber: user.slmcNumber,
+        specialisation: user.specialisation,
+        hospital: user.hospital
+      }
+    });
 
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
