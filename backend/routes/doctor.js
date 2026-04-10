@@ -5,6 +5,7 @@ const MedicalRecord = require('../models/MedicalRecord');
 const ConsentRecord = require('../models/ConsentRecord');
 const User = require('../models/User');
 const { decryptFile } = require('../utils/encryption');
+const createNotification = require('../utils/createNotification');
 
 //  AUTH MIDDLEWARE 
 const auth = (req, res, next) => {
@@ -103,7 +104,17 @@ router.post('/patients/:patientId/records', auth, async (req, res) => {
       uploadedByRole: 'doctor'
     });
     await record.save();
-    res.status(201).json({ message: 'Record added successfully', record });
+
+// Notify the patient
+await createNotification(
+  req.params.patientId,
+  'patient',
+  'New Record Added by Doctor',
+  `Dr. ${doctor.firstName} ${doctor.lastName} has added a new ${recordType} to your medical records.`,
+  'record_added'
+);
+
+res.status(201).json({ message: 'Record added successfully', record });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

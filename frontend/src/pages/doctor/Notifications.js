@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import DoctorSidebar from '../../components/DoctorSidebar';
+import API from '../../services/api';
 
 function DoctorNotifications() {
   const user = JSON.parse(localStorage.getItem('user'));
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -11,39 +14,55 @@ function DoctorNotifications() {
     return 'good evening';
   };
 
-  const [notifications] = useState([
-    {
-      _id: '1',
-      title: 'Sandaru Pathirana uploaded a new record',
-      description: 'A new Lab Result (Full Blood Count — Nawaloka Hospital) has been added to Sandaru Pathirana\'s records. You can view it now as you have active consent.',
-      time: 'Today, 9:20 AM',
-      isRead: false,
-      type: 'new_record'
-    },
-    {
-      _id: '2',
-      title: 'Ruwini Wickramasinghe granted you access',
-      description: 'Ruwini Wickramasinghe has granted you access to her medical records. You can now view her records from the My Patients page.',
-      time: 'Today, 8:05 AM',
-      isRead: true,
-      type: 'consent_granted'
-    },
-    {
-      _id: '3',
-      title: 'Kamal Fernando revoked your access',
-      description: 'Kamal Fernando has revoked your access to his medical records. You can no longer view his records. This action was taken by the patient.',
-      time: 'Yesterday, 3:45 PM',
-      isRead: true,
-      type: 'consent_revoked'
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const fetchNotifications = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await API.get('/notifications', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setNotifications(response.data);
+    } catch (err) {
+      console.error(err);
     }
-  ]);
+    setLoading(false);
+  };
+
+  const markAsRead = async (notifId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await API.put(`/notifications/${notifId}/read`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setNotifications(notifications.map(n =>
+        n._id === notifId ? { ...n, isRead: true } : n
+      ));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const markAllRead = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await API.put('/notifications/read-all', {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const getIcon = (type) => {
     switch(type) {
       case 'new_record': return '📋';
       case 'consent_granted': return '🔑';
       case 'consent_revoked': return '🚫';
-      case 'account': return '🔐';
+      case 'record_added': return '📁';
       default: return '🔔';
     }
   };
@@ -53,14 +72,35 @@ function DoctorNotifications() {
       case 'new_record': return '#f0fdf4';
       case 'consent_granted': return '#f5f3ff';
       case 'consent_revoked': return '#fee2e2';
-      case 'account': return '#f8f8f8';
       default: return '#f0f0f0';
     }
   };
 
+  const formatTime = (dateStr) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = now - date;
+    const mins = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins} minutes ago`;
+    if (hours < 24) return `${hours} hours ago`;
+    if (days === 1) return 'Yesterday';
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
   const unreadCount = notifications.filter(n => !n.isRead).length;
-  const todayNotifs = notifications.filter(n => n.time.startsWith('Today'));
-  const earlierNotifs = notifications.filter(n => !n.time.startsWith('Today'));
+  const todayNotifs = notifications.filter(n => {
+    const d = new Date(n.createdAt);
+    const today = new Date();
+    return d.toDateString() === today.toDateString();
+  });
+  const earlierNotifs = notifications.filter(n => {
+    const d = new Date(n.createdAt);
+    const today = new Date();
+    return d.toDateString() !== today.toDateString();
+  });
 
   return (
     <div style={styles.container}>
@@ -76,23 +116,44 @@ function DoctorNotifications() {
         <div style={styles.content}>
 
           <div style={styles.banner}>
-            <h2 style={styles.bannerTitle}>Notifications</h2>
-            <div style={styles.bannerMeta}>{unreadCount} unread · {notifications.length} total</div>
+            <div style={styles.bannerLeft}>
+              <h2 style={styles.bannerTitle}>Notifications</h2>
+              <div style={styles.bannerMeta}>{unreadCount} unread · {notifications.length} total</div>
+            </div>
+            {unreadCount > 0 && (
+              <button style={styles.btnMarkAll} onClick={markAllRead}>
+                ✓ Mark all as read
+              </button>
+            )}
           </div>
+
+          {loading && <p style={styles.emptyMsg}>Loading notifications...</p>}
+
+          {!loading && notifications.length === 0 && (
+            <div style={styles.emptyCard}>
+              <div style={styles.emptyIcon}>🔔</div>
+              <div style={styles.emptyText}>No notifications yet</div>
+              <div style={styles.emptySub}>You will see notifications here when patients grant consent or upload new records.</div>
+            </div>
+          )}
 
           {todayNotifs.length > 0 && (
             <>
               <div style={styles.dateGroup}>Today — {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
               {todayNotifs.map(notif => (
-                <div key={notif._id} style={notif.isRead ? styles.notifCard : {...styles.notifCard, ...styles.notifUnread}}>
+                <div
+                  key={notif._id}
+                  style={notif.isRead ? styles.notifCard : {...styles.notifCard, ...styles.notifUnread}}
+                  onClick={() => !notif.isRead && markAsRead(notif._id)}
+                >
                   {!notif.isRead && <div style={styles.unreadDot}></div>}
                   <div style={{...styles.notifIcon, background: getIconBg(notif.type)}}>
                     {getIcon(notif.type)}
                   </div>
                   <div style={styles.notifBody}>
                     <div style={styles.notifTitle}>{notif.title}</div>
-                    <div style={styles.notifDesc}>{notif.description}</div>
-                    <div style={styles.notifTime}>{notif.time}</div>
+                    <div style={styles.notifDesc}>{notif.message}</div>
+                    <div style={styles.notifTime}>{formatTime(notif.createdAt)}</div>
                   </div>
                 </div>
               ))}
@@ -101,17 +162,21 @@ function DoctorNotifications() {
 
           {earlierNotifs.length > 0 && (
             <>
-              <div style={styles.dateGroup}>Yesterday</div>
+              <div style={styles.dateGroup}>Earlier</div>
               {earlierNotifs.map(notif => (
-                <div key={notif._id} style={notif.isRead ? styles.notifCard : {...styles.notifCard, ...styles.notifUnread}}>
+                <div
+                  key={notif._id}
+                  style={notif.isRead ? styles.notifCard : {...styles.notifCard, ...styles.notifUnread}}
+                  onClick={() => !notif.isRead && markAsRead(notif._id)}
+                >
                   {!notif.isRead && <div style={styles.unreadDot}></div>}
                   <div style={{...styles.notifIcon, background: getIconBg(notif.type)}}>
                     {getIcon(notif.type)}
                   </div>
                   <div style={styles.notifBody}>
                     <div style={styles.notifTitle}>{notif.title}</div>
-                    <div style={styles.notifDesc}>{notif.description}</div>
-                    <div style={styles.notifTime}>{notif.time}</div>
+                    <div style={styles.notifDesc}>{notif.message}</div>
+                    <div style={styles.notifTime}>{formatTime(notif.createdAt)}</div>
                   </div>
                 </div>
               ))}
@@ -131,11 +196,18 @@ const styles = {
   topbarTitle: { fontSize: '22px', fontWeight: '400', color: '#222', flex: 1 },
   greeting: { fontSize: '14px', color: '#888', fontWeight: '400' },
   content: { padding: '24px' },
-  banner: { background: '#2d6b70', borderRadius: '14px', padding: '22px 26px', marginBottom: '22px' },
+  banner: { background: '#2d6b70', borderRadius: '14px', padding: '22px 26px', marginBottom: '22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  bannerLeft: {},
   bannerTitle: { fontSize: '20px', fontWeight: '700', color: 'white', marginBottom: '6px' },
   bannerMeta: { fontSize: '13.5px', color: 'rgba(255,255,255,0.75)' },
+  btnMarkAll: { padding: '9px 18px', background: 'rgba(255,255,255,0.18)', color: 'white', border: '1px solid rgba(255,255,255,0.30)', borderRadius: '9px', fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: '700', cursor: 'pointer' },
+  emptyMsg: { fontSize: '14px', color: '#aaa', textAlign: 'center', padding: '40px 0' },
+  emptyCard: { background: 'white', borderRadius: '14px', padding: '50px 30px', textAlign: 'center', border: '1px solid #eee' },
+  emptyIcon: { fontSize: '40px', marginBottom: '14px' },
+  emptyText: { fontSize: '16px', fontWeight: '700', color: '#444', marginBottom: '8px' },
+  emptySub: { fontSize: '13px', color: '#aaa', lineHeight: '1.6' },
   dateGroup: { fontSize: '12.5px', color: '#aaa', fontWeight: '600', margin: '18px 0 10px', paddingBottom: '6px', borderBottom: '1px solid #ddd' },
-  notifCard: { background: 'white', borderRadius: '12px', padding: '16px 18px', marginBottom: '10px', border: '1px solid #eee', display: 'flex', gap: '14px', alignItems: 'flex-start', position: 'relative' },
+  notifCard: { background: 'white', borderRadius: '12px', padding: '16px 18px', marginBottom: '10px', border: '1px solid #eee', display: 'flex', gap: '14px', alignItems: 'flex-start', position: 'relative', cursor: 'pointer' },
   notifUnread: { borderLeft: '4px solid #17a8c4' },
   unreadDot: { width: '9px', height: '9px', borderRadius: '50%', background: '#17a8c4', position: 'absolute', top: '18px', right: '18px' },
   notifIcon: { width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 },

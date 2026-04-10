@@ -6,6 +6,7 @@ const MedicalRecord = require('../models/MedicalRecord');
 const User = require('../models/User');
 const ConsentRecord = require('../models/ConsentRecord');
 const { encryptFile, decryptFile } = require('../utils/encryption');
+const createNotification = require('../utils/createNotification');
 
 //  AUTH MIDDLEWARE 
 const auth = (req, res, next) => {
@@ -86,7 +87,26 @@ router.post('/records', auth, upload.single('file'), async (req, res) => {
     });
 
     await record.save();
-    res.status(201).json({ message: 'Record uploaded successfully', record });
+
+// Notify all doctors with active consent
+const activeConsents = await ConsentRecord.find({
+  patientId: req.user.userId,
+  isActive: true
+});
+
+const patient = await User.findById(req.user.userId);
+
+for (const consent of activeConsents) {
+  await createNotification(
+    consent.doctorId,
+    'doctor',
+    'New Medical Record Uploaded',
+    `${patient.firstName} ${patient.lastName} has uploaded a new ${recordType} record. You can view it as you have active consent.`,
+    'new_record'
+  );
+}
+
+res.status(201).json({ message: 'Record uploaded successfully', record });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -111,31 +131,43 @@ router.post('/consents', auth, async (req, res) => {
     const { slmcNumber } = req.body;
     const doctor = await User.findOne({ slmcNumber, role: 'doctor' });
     if (!doctor) {
-      return res.status(404).json({ message: 'Doctor not found. Please check the SLMC number.' });
+      return res.status(404).json({ message: 'Doctor not found with that SLMC number' });
     }
+
     const existing = await ConsentRecord.findOne({
       patientId: req.user.userId,
-      doctorId: doctor._id,
-      isActive: true
+      doctorId: doctor._id
     });
+
     if (existing) {
-      return res.status(400).json({ message: 'You have already granted access to this doctor.' });
-    }
-    const consent = new ConsentRecord({
-      patientId: req.user.userId,
-      doctorId: doctor._id,
-      isActive: true
-    });
-    await consent.save();
-    res.status(201).json({
-      message: `Access granted to ${doctor.firstName} ${doctor.lastName}`,
-      doctor: {
-        name: `${doctor.firstName} ${doctor.lastName}`,
-        specialisation: doctor.specialisation,
-        hospital: doctor.hospital,
-        slmcNumber: doctor.slmcNumber
+      if (existing.isActive) {
+        return res.status(400).json({ message: 'Consent already granted to this doctor' });
       }
-    });
+      existing.isActive = true;
+      existing.grantedAt = new Date();
+      await existing.save();
+    } else {
+      const consent = new ConsentRecord({
+        patientId: req.user.userId,
+        doctorId: doctor._id,
+        isActive: true
+      });
+      await consent.save();
+    }
+
+    // Get patient name for notification
+    const patient = await User.findById(req.user.userId);
+
+    // Notify the doctor
+    await createNotification(
+      doctor._id,
+      'doctor',
+      'New Patient Access Granted',
+      `${patient.firstName} ${patient.lastName} has granted you access to their medical records.`,
+      'consent_granted'
+    );
+
+    res.json({ message: `Consent granted to Dr. ${doctor.firstName} ${doctor.lastName}` });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -144,17 +176,35 @@ router.post('/consents', auth, async (req, res) => {
 //  REVOKE CONSENT 
 router.put('/consents/:consentId/revoke', auth, async (req, res) => {
   try {
-    const consent = await ConsentRecord.findOneAndUpdate(
-      { _id: req.params.consentId, patientId: req.user.userId },
-      { isActive: false, revokedAt: new Date() },
-      { new: true }
-    );
+    const consent = await ConsentRecord.findOne({
+      _id: req.params.consentId,
+      patientId: req.user.userId
+    });
+
     if (!consent) {
       return res.status(404).json({ message: 'Consent not found' });
     }
-    res.json({ message: 'Access revoked successfully' });
+
+    consent.isActive = false;
+    await consent.save();
+
+    // Get patient name and doctor for notification
+    const patient = await User.findById(req.user.userId);
+    const doctor = await User.findById(consent.doctorId);
+
+    if (doctor) {
+      await createNotification(
+        doctor._id,
+        'doctor',
+        'Patient Access Revoked',
+        `${patient.firstName} ${patient.lastName} has revoked your access to their medical records.`,
+        'consent_revoked'
+      );
+    }
+
+    res.json({ message: 'Consent revoked successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 

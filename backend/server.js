@@ -39,3 +39,6 @@ mongoose.connect(MONGO_URI)
   .catch((error) => {
     console.log('MongoDB connection error:', error);
   });
+
+  const notificationRoutes = require('./routes/notifications');
+app.use('/api/notifications', notificationRoutes);
