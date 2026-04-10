@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const MedicalRecord = require('../models/MedicalRecord');
 const ConsentRecord = require('../models/ConsentRecord');
 const User = require('../models/User');
+const { decryptFile } = require('../utils/encryption');
 
 //  AUTH MIDDLEWARE 
 const auth = (req, res, next) => {
@@ -18,7 +19,7 @@ const auth = (req, res, next) => {
   }
 };
 
-//  GET DOCTOR STATS
+//  GET DOCTOR STATS 
 router.get('/stats', auth, async (req, res) => {
   try {
     const patientsWithAccess = await ConsentRecord.countDocuments({
@@ -62,7 +63,6 @@ router.get('/patients', auth, async (req, res) => {
 //  GET PATIENT RECORDS 
 router.get('/patients/:patientId/records', auth, async (req, res) => {
   try {
-    // Check consent exists
     const consent = await ConsentRecord.findOne({
       doctorId: req.user.userId,
       patientId: req.params.patientId,
@@ -106,6 +106,40 @@ router.post('/patients/:patientId/records', auth, async (req, res) => {
     res.status(201).json({ message: 'Record added successfully', record });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+//  GET PATIENT FILE 
+router.get('/patients/:patientId/records/:recordId/file', auth, async (req, res) => {
+  try {
+    const consent = await ConsentRecord.findOne({
+      patientId: req.params.patientId,
+      doctorId: req.user.userId,
+      isActive: true  // ← fixed: was status: 'active'
+    });
+
+    if (!consent) {
+      return res.status(403).json({ message: 'No active consent from this patient' });
+    }
+
+    const record = await MedicalRecord.findOne({
+      _id: req.params.recordId,
+      patientId: req.params.patientId
+    });
+
+    if (!record || !record.fileData) {
+      return res.status(404).json({ message: 'File not found' });
+    }
+
+    const decryptedBase64 = decryptFile(record.fileData);
+    const fileBuffer = Buffer.from(decryptedBase64, 'base64');
+
+    res.set('Content-Type', record.fileType);
+    res.set('Content-Disposition', `inline; filename="${record.fileName}"`);
+    res.send(fileBuffer);
+  } catch (error) {
+    console.error('File retrieval error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 

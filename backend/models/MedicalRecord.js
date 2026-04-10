@@ -25,11 +25,18 @@ const medicalRecordSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
-  fileUrl: {
-    type: String
+  // File storage
+  fileData: {
+    type: String  // Base64 encoded file
   },
   fileName: {
     type: String
+  },
+  fileType: {
+    type: String
+  },
+  fileSize: {
+    type: Number
   },
   uploadedBy: {
     type: mongoose.Schema.Types.ObjectId,

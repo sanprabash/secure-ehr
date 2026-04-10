@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const MedicalRecord = require('../models/MedicalRecord');
 const User = require('../models/User');
 const ConsentRecord = require('../models/ConsentRecord');
+const { encryptFile, decryptFile } = require('../utils/encryption');
 
 //  AUTH MIDDLEWARE 
 const auth = (req, res, next) => {
@@ -45,9 +46,30 @@ router.get('/records', auth, async (req, res) => {
 });
 
 //  UPLOAD RECORD 
-router.post('/records', auth, async (req, res) => {
+const multer = require('multer');
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
+
+router.post('/records', auth, upload.single('file'), async (req, res) => {
   try {
     const { title, recordType, description, healthcareFacility, recordDate } = req.body;
+
+    let fileData = null;
+    let fileName = null;
+    let fileType = null;
+    let fileSize = null;
+
+    if (req.file) {
+  const base64Data = req.file.buffer.toString('base64');
+  fileData = encryptFile(base64Data); // Encrypt before storing
+  fileName = req.file.originalname;
+  fileType = req.file.mimetype;
+  fileSize = req.file.size;
+  }
+
     const record = new MedicalRecord({
       patientId: req.user.userId,
       title,
@@ -55,9 +77,14 @@ router.post('/records', auth, async (req, res) => {
       description,
       healthcareFacility,
       recordDate,
+      fileData,
+      fileName,
+      fileType,
+      fileSize,
       uploadedBy: req.user.userId,
       uploadedByRole: 'patient'
     });
+
     await record.save();
     res.status(201).json({ message: 'Record uploaded successfully', record });
   } catch (error) {
@@ -175,6 +202,30 @@ router.put('/change-password', auth, async (req, res) => {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await User.findByIdAndUpdate(req.user.userId, { password: hashedPassword });
     res.json({ message: 'Password changed successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+//  GET FILE 
+router.get('/records/:recordId/file', auth, async (req, res) => {
+  try {
+    const record = await MedicalRecord.findOne({
+      _id: req.params.recordId,
+      patientId: req.user.userId
+    });
+
+    if (!record || !record.fileData) {
+      return res.status(404).json({ message: 'File not found' });
+    }
+
+    // Decrypt the file data
+    const decryptedBase64 = decryptFile(record.fileData);
+    const fileBuffer = Buffer.from(decryptedBase64, 'base64');
+    
+    res.set('Content-Type', record.fileType);
+    res.set('Content-Disposition', `inline; filename="${record.fileName}"`);
+    res.send(fileBuffer);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

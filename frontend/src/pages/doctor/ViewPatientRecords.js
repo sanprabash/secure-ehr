@@ -108,6 +108,53 @@ function ViewPatientRecords() {
     }
   };
 
+  const handleViewFile = async (record) => {
+    if (!record.fileName) {
+      alert('No file attached to this record.');
+      return;
+    }
+    try {
+      const token = localStorage.getItem('token');
+      const response = await API.get(
+        `/doctor/patients/${patientId}/records/${record._id}/file`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'blob'
+        }
+      );
+      const url = window.URL.createObjectURL(
+        new Blob([response.data], { type: record.fileType })
+      );
+      window.open(url, '_blank');
+    } catch (err) {
+      alert('Could not load file. The patient may have revoked consent.');
+    }
+  };
+
+  const handleDownloadFile = async (record) => {
+    if (!record.fileName) {
+      alert('No file attached to this record.');
+      return;
+    }
+    try {
+      const token = localStorage.getItem('token');
+      const response = await API.get(
+        `/doctor/patients/${patientId}/records/${record._id}/file`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'blob'
+        }
+      );
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = record.fileName;
+      link.click();
+    } catch (err) {
+      alert('Could not download file.');
+    }
+  };
+
   const filters = ['All Records', 'Lab Result', 'Imaging', 'Prescription', 'Clinical Note'];
   const grouped = groupByMonth(filtered);
 
@@ -240,6 +287,7 @@ function ViewPatientRecords() {
                           <span>📅 {new Date(record.recordDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                           {record.healthcareFacility && <span>🏥 {record.healthcareFacility}</span>}
                           <span style={{...styles.typeBadge, ...getTypeColor(record.recordType)}}>{record.recordType}</span>
+                          {record.fileName && <span>📎</span>}
                           <span>🔒</span>
                         </div>
                       </div>
@@ -257,10 +305,33 @@ function ViewPatientRecords() {
                   {selected.healthcareFacility} · {new Date(selected.recordDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </div>
                 <div style={styles.detailThumb}>{getTypeIcon(selected.recordType)}</div>
-                <div style={styles.detailBtnRow}>
-                  <button style={styles.btnDecrypt}>🔓 Decrypt & View</button>
-                  <button style={styles.btnDownload}>⬇ Download</button>
+
+                {/* FILE SECTION */}
+                <div style={styles.fileSection}>
+                  <div style={styles.detailSection}>Attached File</div>
+                  {selected.fileName ? (
+                    <>
+                      <div style={styles.fileNameBox}>📎 {selected.fileName}</div>
+                      <div style={styles.detailBtnRow}>
+                        <button
+                          style={styles.btnDecrypt}
+                          onClick={() => handleViewFile(selected)}
+                        >
+                          🔓 Decrypt & View
+                        </button>
+                        <button
+                          style={styles.btnDownload}
+                          onClick={() => handleDownloadFile(selected)}
+                        >
+                          ⬇ Download
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={styles.noFile}>No file attached to this record</div>
+                  )}
                 </div>
+
                 {selected.description && (
                   <>
                     <div style={styles.detailSection}>Description</div>
@@ -274,7 +345,7 @@ function ViewPatientRecords() {
                   </div>
                   <div style={styles.accessInfo}>
                     {selected.uploadedByRole === 'doctor' ? 'Doctor' : 'Patient'}
-                    <span>{new Date(selected.createdAt).toLocaleDateString()}</span>
+                    <span> · {new Date(selected.createdAt).toLocaleDateString()}</span>
                   </div>
                   <span style={selected.uploadedByRole === 'doctor' ? styles.badgeDoctor : styles.badgePatient}>
                     {selected.uploadedByRole === 'doctor' ? 'Added by Doctor' : 'Uploaded'}
@@ -340,7 +411,10 @@ const styles = {
   detailTitle: { fontSize: '15px', fontWeight: '700', color: '#222', marginBottom: '4px' },
   detailSub: { fontSize: '12px', color: '#888', marginBottom: '16px' },
   detailThumb: { width: '100%', height: '90px', background: '#f4f8fb', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', marginBottom: '14px' },
-  detailBtnRow: { display: 'flex', gap: '8px', marginBottom: '16px' },
+  fileSection: { marginBottom: '14px' },
+  fileNameBox: { fontSize: '12px', color: '#555', background: '#f8f8f8', border: '1px solid #eee', borderRadius: '7px', padding: '8px 12px', marginBottom: '10px', wordBreak: 'break-all' },
+  noFile: { fontSize: '12px', color: '#bbb', fontStyle: 'italic', marginBottom: '10px' },
+  detailBtnRow: { display: 'flex', gap: '8px', marginBottom: '4px' },
   btnDecrypt: { flex: 1, padding: '9px', background: '#17a8c4', color: 'white', border: 'none', borderRadius: '8px', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: '700', cursor: 'pointer' },
   btnDownload: { flex: 1, padding: '9px', background: '#f0f0f0', color: '#444', border: 'none', borderRadius: '8px', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: '700', cursor: 'pointer' },
   detailSection: { fontSize: '12px', fontWeight: '700', color: '#888', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px', marginTop: '14px' },

@@ -71,26 +71,43 @@ function UploadRecord() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    setSuccess('');
+  e.preventDefault();
+  setLoading(true);
+  setError('');
+  setSuccess('');
 
-    try {
-      const token = localStorage.getItem('token');
-      await API.post('/patient/records', formData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setSuccess('Record uploaded successfully!');
-      setTimeout(() => {
-        navigate('/patient/records');
-      }, 1500);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Upload failed. Please try again.');
+  try {
+    const token = localStorage.getItem('token');
+
+    // Use FormData to send both file and text data
+    const data = new FormData();
+    data.append('title', formData.title);
+    data.append('recordType', formData.recordType);
+    data.append('description', formData.description);
+    data.append('healthcareFacility', formData.healthcareFacility);
+    data.append('recordDate', formData.recordDate);
+
+    if (selectedFile) {
+      data.append('file', selectedFile);
     }
 
-    setLoading(false);
-  };
+    await API.post('/patient/records', data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+
+    setSuccess('Record uploaded successfully!');
+    setTimeout(() => {
+      navigate('/patient/records');
+    }, 1500);
+  } catch (err) {
+    setError(err.response?.data?.message || 'Upload failed. Please try again.');
+  }
+
+  setLoading(false);
+};
 
   const recordTypes = ['Lab Result', 'Imaging', 'Prescription', 'Clinical Note'];
 

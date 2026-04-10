@@ -76,6 +76,45 @@ function MedicalRecords() {
     return groups;
   };
 
+  const handleViewFile = async (record) => {
+  if (!record.fileName) {
+    alert('No file attached to this record.');
+    return;
+  }
+  try {
+    const token = localStorage.getItem('token');
+    const response = await API.get(`/patient/records/${record._id}/file`, {
+      headers: { Authorization: `Bearer ${token}` },
+      responseType: 'blob'
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data], { type: record.fileType }));
+    window.open(url, '_blank');
+  } catch (err) {
+    alert('Could not load file.');
+  }
+};
+
+const handleDownloadFile = async (record) => {
+  if (!record.fileName) {
+    alert('No file attached to this record.');
+    return;
+  }
+  try {
+    const token = localStorage.getItem('token');
+    const response = await API.get(`/patient/records/${record._id}/file`, {
+      headers: { Authorization: `Bearer ${token}` },
+      responseType: 'blob'
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = record.fileName;
+    link.click();
+  } catch (err) {
+    alert('Could not download file.');
+  }
+};
+
   const countByType = (type) => records.filter(r => r.recordType === type).length;
 
   const filters = ['All Records', 'Lab Result', 'Imaging', 'Prescription', 'Clinical Note'];
@@ -154,11 +193,23 @@ function MedicalRecords() {
                 <div style={styles.detailTitle}>{selected.title}</div>
                 <div style={styles.detailSub}>{selected.healthcareFacility} · {new Date(selected.recordDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                 <div style={styles.detailThumb}>{getTypeIcon(selected.recordType)}</div>
-                <div style={styles.detailFilename}>No file attached</div>
-                <div style={styles.detailBtnRow}>
-                  <button style={styles.btnDecrypt}>🔓 Decrypt & View</button>
-                  <button style={styles.btnDownload}>⬇ Download</button>
+                <div style={styles.detailFilename}>
+                 {selected.fileName ? selected.fileName : 'No file attached'}
                 </div>
+                <div style={styles.detailBtnRow}>
+                 <button
+                  style={styles.btnDecrypt}
+                  onClick={() => handleViewFile(selected)}
+                 >
+                  🔓 Decrypt & View
+                </button>
+                <button
+                  style={styles.btnDownload}
+                  onClick={() => handleDownloadFile(selected)}
+                >
+                 ⬇ Download
+                </button>
+              </div>
                 {selected.description && (
                   <>
                     <div style={styles.detailSection}>Description</div>
