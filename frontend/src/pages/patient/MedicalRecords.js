@@ -133,6 +133,35 @@ function MedicalRecords() {
     }
   };
 
+  const handleDeleteRecord = async (record) => {
+    if (record.uploadedByRole !== 'patient') {
+      alert('You can only delete records you uploaded. Doctor-added records cannot be deleted.');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete "${record.title}"? This action cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      await API.delete(`/patient/records/${record._id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // Remove from state
+      const updatedRecords = records.filter(r => r._id !== record._id);
+      setRecords(updatedRecords);
+      setFiltered(updatedRecords.filter(r =>
+        activeFilter === 'All Records' ? true : r.recordType === activeFilter
+      ));
+      // Select next record or clear
+      setSelected(updatedRecords.length > 0 ? updatedRecords[0] : null);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to delete record.');
+    }
+  };
+
   const formatTime = (dateStr) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) +
@@ -220,7 +249,9 @@ function MedicalRecords() {
             {selected && (
               <div style={styles.detailPanel}>
                 <div style={styles.detailTitle}>{selected.title}</div>
-                <div style={styles.detailSub}>{selected.healthcareFacility} · {new Date(selected.recordDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                <div style={styles.detailSub}>
+                  {selected.healthcareFacility} · {new Date(selected.recordDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </div>
                 <div style={styles.detailThumb}>{getTypeIcon(selected.recordType)}</div>
 
                 {/* FILE SECTION */}
@@ -243,6 +274,22 @@ function MedicalRecords() {
                   </>
                 )}
 
+                {/* DELETE BUTTON — only for patient uploaded records */}
+                {selected.uploadedByRole === 'patient' && (
+                  <button
+                    style={styles.btnDelete}
+                    onClick={() => handleDeleteRecord(selected)}
+                  >
+                    🗑 Delete This Record
+                  </button>
+                )}
+
+                {selected.uploadedByRole === 'doctor' && (
+                  <div style={styles.doctorRecordNote}>
+                    📋 This record was added by a doctor and cannot be deleted.
+                  </div>
+                )}
+
                 {/* WHO ACCESSED THIS RECORD */}
                 <div style={styles.detailSection}>
                   Who Accessed This Record
@@ -251,7 +298,7 @@ function MedicalRecords() {
                   )}
                 </div>
 
-                {/* Uploader row — always shown */}
+                {/* Uploader row */}
                 <div style={styles.accessRow}>
                   <div style={styles.accessAvatar}>
                     {user?.firstName[0]}{user?.lastName[0]}
@@ -327,6 +374,8 @@ const styles = {
   detailBtnRow: { display: 'flex', gap: '8px', marginBottom: '16px' },
   btnDecrypt: { flex: 1, padding: '9px', background: '#17a8c4', color: 'white', border: 'none', borderRadius: '8px', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: '700', cursor: 'pointer' },
   btnDownload: { flex: 1, padding: '9px', background: '#f0f0f0', color: '#444', border: 'none', borderRadius: '8px', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: '700', cursor: 'pointer' },
+  btnDelete: { width: '100%', padding: '9px', background: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: '8px', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: '700', cursor: 'pointer', marginTop: '10px', marginBottom: '4px' },
+  doctorRecordNote: { fontSize: '11.5px', color: '#aaa', background: '#f8f8f8', borderRadius: '8px', padding: '8px 12px', marginTop: '10px', marginBottom: '4px', textAlign: 'center' },
   detailSection: { fontSize: '12px', fontWeight: '700', color: '#888', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px', marginTop: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   accessCount: { fontSize: '11px', fontWeight: '700', padding: '2px 8px', borderRadius: '10px', background: '#f0f0f0', color: '#666', textTransform: 'none', letterSpacing: '0' },
   detailDesc: { fontSize: '13px', color: '#555', lineHeight: '1.6' },

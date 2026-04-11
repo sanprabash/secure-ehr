@@ -330,4 +330,33 @@ router.put('/emergency-contact', auth, async (req, res) => {
   }
 });
 
+//  DELETE RECORD 
+router.delete('/records/:recordId', auth, async (req, res) => {
+  try {
+    const record = await MedicalRecord.findOne({
+      _id: req.params.recordId,
+      patientId: req.user.userId
+    });
+
+    if (!record) {
+      return res.status(404).json({ message: 'Record not found' });
+    }
+
+    // Only allow patient to delete their own uploaded records
+    if (record.uploadedByRole !== 'patient') {
+      return res.status(403).json({ message: 'You can only delete records you uploaded. Doctor-added records cannot be deleted.' });
+    }
+
+    await MedicalRecord.findByIdAndDelete(req.params.recordId);
+
+    // Also delete access logs for this record
+    const AccessLog = require('../models/AccessLog');
+    await AccessLog.deleteMany({ recordId: req.params.recordId });
+
+    res.json({ message: 'Record deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 module.exports = router;
