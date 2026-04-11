@@ -24,10 +24,10 @@ function MyProfile() {
   });
 
   const [emergencyContact, setEmergencyContact] = useState({
-    name: '',
-    relationship: '',
-    phone: '',
-    email: ''
+    name: user?.emergencyContact?.name || '',
+    relationship: user?.emergencyContact?.relationship || '',
+    phone: user?.emergencyContact?.phone || '',
+    email: user?.emergencyContact?.email || ''
   });
 
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -41,6 +41,8 @@ function MyProfile() {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [emergencyMsg, setEmergencyMsg] = useState('');
+  const [emergencyError, setEmergencyError] = useState('');
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -92,6 +94,20 @@ function MyProfile() {
       setShowPasswordForm(false);
     } catch (err) {
       setPasswordError(err.response?.data?.message || 'Failed to change password');
+    }
+  };
+
+  const handleEmergencySave = async () => {
+    setEmergencyMsg('');
+    setEmergencyError('');
+    try {
+      const token = localStorage.getItem('token');
+      await API.put('/patient/emergency-contact', emergencyContact, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setEmergencyMsg('Emergency contact saved successfully');
+    } catch (err) {
+      setEmergencyError('Failed to save emergency contact');
     }
   };
 
@@ -389,6 +405,9 @@ function MyProfile() {
                 <div style={styles.cardTitle}>🚨 Emergency Contact</div>
                 <div style={styles.cardSub}>Person to contact in case of emergency</div>
 
+                {emergencyMsg && <div style={styles.successMsg}>{emergencyMsg}</div>}
+                {emergencyError && <div style={styles.errorMsg}>{emergencyError}</div>}
+
                 <div style={styles.formGrid}>
 
                   <div style={styles.formGroup}>
@@ -460,7 +479,9 @@ function MyProfile() {
                 </div>
 
                 <div style={styles.btnRow}>
-                  <button style={styles.btnSave}>Save Emergency Contact</button>
+                  <button style={styles.btnSave} onClick={handleEmergencySave}>
+                    Save Emergency Contact
+                  </button>
                 </div>
               </div>
 

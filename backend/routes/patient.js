@@ -317,4 +317,17 @@ router.get('/records/:recordId/access-log', auth, async (req, res) => {
   }
 });
 
+//  SAVE EMERGENCY CONTACT 
+router.put('/emergency-contact', auth, async (req, res) => {
+  try {
+    const { name, relationship, phone, email } = req.body;
+    await User.findByIdAndUpdate(req.user.userId, {
+      emergencyContact: { name, relationship, phone, email }
+    });
+    res.json({ message: 'Emergency contact saved successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;

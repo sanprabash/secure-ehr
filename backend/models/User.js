@@ -43,6 +43,13 @@ const userSchema = new mongoose.Schema({
   address: {
     type: String
   },
+  // Emergency contact
+  emergencyContact: {
+    name: { type: String },
+    relationship: { type: String },
+    phone: { type: String },
+    email: { type: String }
+  },
   // Doctor specific fields
   slmcNumber: {
     type: String
