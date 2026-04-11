@@ -6,6 +6,7 @@ const ConsentRecord = require('../models/ConsentRecord');
 const User = require('../models/User');
 const { decryptFile } = require('../utils/encryption');
 const createNotification = require('../utils/createNotification');
+const AccessLog = require('../models/AccessLog');
 
 //  AUTH MIDDLEWARE 
 const auth = (req, res, next) => {
@@ -31,9 +32,12 @@ router.get('/stats', auth, async (req, res) => {
       uploadedBy: req.user.userId,
       uploadedByRole: 'doctor'
     });
+    const recordsAccessed = await AccessLog.countDocuments({
+      doctorId: req.user.userId
+    });
     res.json({
       patientsWithAccess,
-      recordsAccessed: 0,
+      recordsAccessed,
       clinicalNotesAdded
     });
   } catch (error) {
@@ -126,7 +130,7 @@ router.get('/patients/:patientId/records/:recordId/file', auth, async (req, res)
     const consent = await ConsentRecord.findOne({
       patientId: req.params.patientId,
       doctorId: req.user.userId,
-      isActive: true  // ← fixed: was status: 'active'
+      isActive: true
     });
 
     if (!consent) {
@@ -141,6 +145,15 @@ router.get('/patients/:patientId/records/:recordId/file', auth, async (req, res)
     if (!record || !record.fileData) {
       return res.status(404).json({ message: 'File not found' });
     }
+
+    // Log the access
+    const doctor = await User.findById(req.user.userId);
+    await AccessLog.create({
+      recordId: req.params.recordId,
+      patientId: req.params.patientId,
+      doctorId: req.user.userId,
+      doctorName: `Dr. ${doctor.firstName} ${doctor.lastName}`
+    });
 
     const decryptedBase64 = decryptFile(record.fileData);
     const fileBuffer = Buffer.from(decryptedBase64, 'base64');
@@ -178,6 +191,18 @@ router.put('/change-password', auth, async (req, res) => {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await User.findByIdAndUpdate(req.user.userId, { password: hashedPassword });
     res.json({ message: 'Password changed successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+//  GET ACCESS LOG FOR RECORD 
+router.get('/records/:recordId/access-log', auth, async (req, res) => {
+  try {
+    const logs = await AccessLog.find({
+      recordId: req.params.recordId
+    }).sort({ accessedAt: -1 });
+    res.json(logs);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

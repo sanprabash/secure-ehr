@@ -281,4 +281,40 @@ router.get('/records/:recordId/file', auth, async (req, res) => {
   }
 });
 
+//  DELETE ACCOUNT 
+router.delete('/account', auth, async (req, res) => {
+  try {
+    // Delete all patient records
+    await MedicalRecord.deleteMany({ patientId: req.user.userId });
+
+    // Delete all consents
+    await ConsentRecord.deleteMany({ patientId: req.user.userId });
+
+    // Delete all notifications
+    const Notification = require('../models/Notification');
+    await Notification.deleteMany({ recipientId: req.user.userId });
+
+    // Delete the user
+    await User.findByIdAndDelete(req.user.userId);
+
+    res.json({ message: 'Account deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+//  GET ACCESS LOG FOR RECORD 
+router.get('/records/:recordId/access-log', auth, async (req, res) => {
+  try {
+    const AccessLog = require('../models/AccessLog');
+    const logs = await AccessLog.find({
+      recordId: req.params.recordId,
+      patientId: req.user.userId
+    }).sort({ accessedAt: -1 });
+    res.json(logs);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;

@@ -95,6 +95,30 @@ function MyProfile() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete your account? This will permanently delete all your medical records, consents and notifications. This action cannot be undone.'
+    );
+    if (!confirmed) return;
+
+    const doubleConfirmed = window.confirm(
+      'This is your final warning. All your data will be permanently deleted. Are you absolutely sure?'
+    );
+    if (!doubleConfirmed) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      await API.delete('/patient/account', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    } catch (err) {
+      alert('Failed to delete account. Please try again.');
+    }
+  };
+
   const initials = user ? `${user.firstName[0]}${user.lastName[0]}` : 'SP';
 
   return (
@@ -197,7 +221,9 @@ function MyProfile() {
                 <p style={styles.dangerText}>
                   Permanently deleting your account will remove all your medical records, consent history, and personal data from our system. This action cannot be undone. Please download your records before proceeding.
                 </p>
-                <button style={styles.btnDelete}>Delete My Account</button>
+                <button style={styles.btnDelete} onClick={handleDeleteAccount}>
+                  Delete Account
+                </button>
               </div>
             </div>
 
