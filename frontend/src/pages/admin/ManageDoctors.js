@@ -11,7 +11,8 @@ function ManageDoctors() {
     email: '',
     slmcNumber: '',
     specialisation: '',
-    hospital: ''
+    hospital1: '',
+    hospital2: ''
   });
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
@@ -59,7 +60,8 @@ function ManageDoctors() {
         email: '',
         slmcNumber: '',
         specialisation: '',
-        hospital: ''
+        hospital1: '',
+        hospital2: ''
       });
       fetchDoctors();
     } catch (err) {
@@ -85,6 +87,11 @@ function ManageDoctors() {
     return `${doctor.firstName?.[0] || ''}${doctor.lastName?.[0] || ''}`;
   };
 
+  const getHospitalDisplay = (hospital) => {
+    if (Array.isArray(hospital)) return hospital.join(' / ');
+    return hospital || '';
+  };
+
   const avatarColors = ['#17a8c4', '#0f6b7d', '#1389a0', '#3dbfd8', '#0a3d47'];
 
   return (
@@ -104,7 +111,7 @@ function ManageDoctors() {
           <div style={styles.banner}>
             <h2 style={styles.bannerTitle}>Manage Doctors</h2>
             <p style={styles.bannerText}>
-              Add registered doctors from the Sri Lanka Medical Council registry. Login credentials are automatically sent to the doctor's email address upon adding.
+              Add registered doctors from the Sri Lanka Medical Council registry. Doctors working in multiple hospitals can have up to two hospital affiliations.
             </p>
           </div>
 
@@ -128,8 +135,8 @@ function ManageDoctors() {
                   <div style={styles.doctorInfo}>
                     <div style={styles.doctorName}>Dr. {doctor.firstName} {doctor.lastName}</div>
                     <div style={styles.doctorMeta}>
-                      <span>❤️ {doctor.specialisation}</span>
-                      <span>🏥 {doctor.hospital}</span>
+                      <span>🩺 {doctor.specialisation}</span>
+                      <span>🏥 {getHospitalDisplay(doctor.hospital)}</span>
                       <span style={styles.slmcBadge}>{doctor.slmcNumber}</span>
                     </div>
                   </div>
@@ -146,7 +153,7 @@ function ManageDoctors() {
             {/* RIGHT — Add Doctor form */}
             <div style={styles.formPanel}>
               <div style={styles.formTitle}>Add New Doctor</div>
-              <div style={styles.formSub}>Doctor will receive login credentials by email</div>
+              <div style={styles.formSub}>Fill in the doctor's details below</div>
 
               {success && (
                 <div style={styles.successMsg}>
@@ -240,27 +247,41 @@ function ManageDoctors() {
                 </div>
 
                 <div style={styles.formGroup}>
-                  <label style={styles.label}>Hospital / Institution *</label>
+                  <label style={styles.label}>Primary Hospital *</label>
                   <div style={styles.inputWrapper}>
                     <span style={styles.inputIcon}>🏥</span>
                     <input
                       style={styles.input}
                       type="text"
-                      name="hospital"
-                      value={formData.hospital}
+                      name="hospital1"
+                      value={formData.hospital1}
                       onChange={handleChange}
+                      placeholder="e.g. Nawaloka Hospital"
                       required
                     />
                   </div>
                 </div>
 
-                <button style={styles.btnAdd} type="submit" disabled={addLoading}>
-                  {addLoading ? 'Adding...' : '➕ Add Doctor & Send Credentials'}
-                </button>
-
-                <div style={styles.emailNotice}>
-                  Login credentials will be <strong>automatically emailed</strong> to the doctor's address.
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>
+                    Secondary Hospital <span style={styles.optionalLabel}>(optional)</span>
+                  </label>
+                  <div style={styles.inputWrapper}>
+                    <span style={styles.inputIcon}>🏥</span>
+                    <input
+                      style={styles.input}
+                      type="text"
+                      name="hospital2"
+                      value={formData.hospital2}
+                      onChange={handleChange}
+                      placeholder="e.g. Asiri Central Hospital"
+                    />
+                  </div>
                 </div>
+
+                <button style={styles.btnAdd} type="submit" disabled={addLoading}>
+                  {addLoading ? 'Adding...' : '➕ Add Doctor'}
+                </button>
               </form>
             </div>
 
@@ -302,11 +323,11 @@ const styles = {
   formRow: { display: 'grid', gridTemplateColumns: '1fr', gap: '10px' },
   formGroup: { marginBottom: '14px' },
   label: { display: 'block', fontSize: '12px', fontWeight: '700', color: '#444', marginBottom: '6px' },
+  optionalLabel: { fontWeight: '400', color: '#aaa', fontSize: '11px' },
   inputWrapper: { display: 'flex', alignItems: 'center', border: '1.5px solid #ddd', borderRadius: '9px', padding: '0 12px', background: 'white' },
   inputIcon: { fontSize: '15px', marginRight: '8px', color: '#aaa' },
   input: { flex: 1, padding: '10px 0', border: 'none', outline: 'none', fontSize: '13px', fontFamily: 'Inter, sans-serif', color: '#333', background: 'transparent' },
-  btnAdd: { width: '100%', padding: '12px', background: '#17a8c4', color: 'white', border: 'none', borderRadius: '9px', fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: '700', cursor: 'pointer', marginBottom: '10px' },
-  emailNotice: { fontSize: '12px', color: '#888', textAlign: 'center', lineHeight: '1.5' }
+  btnAdd: { width: '100%', padding: '12px', background: '#17a8c4', color: 'white', border: 'none', borderRadius: '9px', fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: '700', cursor: 'pointer', marginBottom: '10px' }
 };
 
 export default ManageDoctors;

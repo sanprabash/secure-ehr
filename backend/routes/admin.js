@@ -4,7 +4,6 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const MedicalRecord = require('../models/MedicalRecord');
-const nodemailer = require('nodemailer');
 
 //  AUTH MIDDLEWARE 
 const auth = (req, res, next) => {
@@ -45,7 +44,7 @@ router.get('/doctors', auth, async (req, res) => {
 //  ADD DOCTOR 
 router.post('/doctors', auth, async (req, res) => {
   try {
-    const { firstName, lastName, email, slmcNumber, specialisation, hospital } = req.body;
+    const { firstName, lastName, email, slmcNumber, specialisation, hospital1, hospital2 } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -55,6 +54,12 @@ router.post('/doctors', auth, async (req, res) => {
     const existingSlmc = await User.findOne({ slmcNumber });
     if (existingSlmc) {
       return res.status(400).json({ message: 'SLMC number already registered' });
+    }
+
+    // Build hospitals array — hospital2 is optional
+    const hospitals = [hospital1];
+    if (hospital2 && hospital2.trim() !== '') {
+      hospitals.push(hospital2.trim());
     }
 
     // Generate temporary password
@@ -69,7 +74,7 @@ router.post('/doctors', auth, async (req, res) => {
       role: 'doctor',
       slmcNumber,
       specialisation,
-      hospital
+      hospital: hospitals
     });
 
     await doctor.save();

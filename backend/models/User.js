@@ -58,7 +58,8 @@ const userSchema = new mongoose.Schema({
     type: String
   },
   hospital: {
-    type: String
+  type: [String],
+  default: []
   },
   createdAt: {
     type: Date,

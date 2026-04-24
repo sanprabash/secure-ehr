@@ -97,28 +97,34 @@ router.post('/patients/:patientId/records', auth, async (req, res) => {
     }
     const { title, recordType, description, recordDate } = req.body;
     const doctor = await User.findById(req.user.userId);
+
+    // hospital is now an array — join for display
+    const facilityDisplay = Array.isArray(doctor.hospital)
+      ? doctor.hospital.join(' / ')
+      : doctor.hospital || '';
+
     const record = new MedicalRecord({
       patientId: req.params.patientId,
       title,
       recordType,
       description,
-      healthcareFacility: doctor.hospital,
+      healthcareFacility: facilityDisplay,
       recordDate,
       uploadedBy: req.user.userId,
       uploadedByRole: 'doctor'
     });
     await record.save();
 
-// Notify the patient
-await createNotification(
-  req.params.patientId,
-  'patient',
-  'New Record Added by Doctor',
-  `Dr. ${doctor.firstName} ${doctor.lastName} has added a new ${recordType} to your medical records.`,
-  'record_added'
-);
+    // Notify the patient
+    await createNotification(
+      req.params.patientId,
+      'patient',
+      'New Record Added by Doctor',
+      `Dr. ${doctor.firstName} ${doctor.lastName} has added a new ${recordType} to your medical records.`,
+      'record_added'
+    );
 
-res.status(201).json({ message: 'Record added successfully', record });
+    res.status(201).json({ message: 'Record added successfully', record });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

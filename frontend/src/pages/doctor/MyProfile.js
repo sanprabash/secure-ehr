@@ -70,6 +70,11 @@ function DoctorMyProfile() {
     }
   };
 
+  const getHospitalDisplay = () => {
+    if (Array.isArray(user?.hospital)) return user.hospital.join(', ');
+    return user?.hospital || '';
+  };
+
   const initials = user ? `${user.firstName[0]}${user.lastName[0]}` : 'DR';
 
   return (
@@ -95,7 +100,7 @@ function DoctorMyProfile() {
                 <div style={styles.profileStats}>
                   <div style={styles.statRow}>
                     <span style={styles.statLabel}>Hospital</span>
-                    <span style={styles.statValue}>{user?.hospital}</span>
+                    <span style={styles.statValue}>{getHospitalDisplay()}</span>
                   </div>
                   <div style={styles.statRow}>
                     <span style={styles.statLabel}>SLMC No.</span>
@@ -207,19 +212,33 @@ function DoctorMyProfile() {
                   </div>
 
                   <div style={styles.formGroup}>
-                    <label style={styles.label}>Hospital / Institution 🔒</label>
-                    <div style={styles.lockedInput}>
-                      <span>{user?.hospital}</span>
-                      <span style={styles.lockedBadge}>Locked</span>
-                    </div>
-                  </div>
-
-                  <div style={styles.formGroup}>
                     <label style={styles.label}>Email Address 🔒</label>
                     <div style={styles.lockedInput}>
                       <span>{user?.email}</span>
                       <span style={styles.lockedBadge}>Locked</span>
                     </div>
+                  </div>
+
+                  <div style={{...styles.formGroup, gridColumn: '1 / -1'}}>
+                    <label style={styles.label}>Hospital / Institution 🔒</label>
+                    {Array.isArray(user?.hospital) && user.hospital.length > 1 ? (
+                      user.hospital.map((h, i) => (
+                        <div
+                          key={i}
+                          style={{...styles.lockedInput, marginBottom: i < user.hospital.length - 1 ? '6px' : '0'}}
+                        >
+                          <span>{h}</span>
+                          <span style={styles.lockedBadge}>
+                            {i === 0 ? 'Primary' : 'Secondary'}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={styles.lockedInput}>
+                        <span>{Array.isArray(user?.hospital) ? user.hospital[0] : user?.hospital}</span>
+                        <span style={styles.lockedBadge}>Locked</span>
+                      </div>
+                    )}
                   </div>
 
                   <div style={styles.formGroup}>
@@ -271,7 +290,7 @@ const styles = {
   profileStats: { borderTop: '1px solid rgba(255,255,255,0.18)', paddingTop: '14px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '10px' },
   statRow: { display: 'flex', justifyContent: 'space-between', fontSize: '13px' },
   statLabel: { color: 'rgba(255,255,255,0.65)' },
-  statValue: { fontWeight: '700', color: 'white' },
+  statValue: { fontWeight: '700', color: 'white', textAlign: 'right', maxWidth: '150px' },
   securityCard: { background: 'white', borderRadius: '14px', padding: '20px', border: '1px solid #eee' },
   secTitle: { fontSize: '14px', fontWeight: '700', color: '#222', marginBottom: '3px' },
   secSub: { fontSize: '11.5px', color: '#888', marginBottom: '14px' },
@@ -286,7 +305,7 @@ const styles = {
   formGroup: { display: 'flex', flexDirection: 'column', gap: '5px' },
   label: { fontSize: '12px', fontWeight: '700', color: '#444' },
   lockedInput: { padding: '9px 12px', border: '1.5px solid #eee', borderRadius: '8px', fontSize: '13px', color: '#999', background: '#f8f8f8', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  lockedBadge: { fontSize: '10px', fontWeight: '700', background: '#f0f0f0', color: '#aaa', borderRadius: '5px', padding: '2px 7px' },
+  lockedBadge: { fontSize: '10px', fontWeight: '700', background: '#f0f0f0', color: '#aaa', borderRadius: '5px', padding: '2px 7px', flexShrink: 0, marginLeft: '8px' },
   inputWrapper: { display: 'flex', alignItems: 'center', border: '1.5px solid #ddd', borderRadius: '8px', padding: '0 12px', background: 'white' },
   inputIcon: { fontSize: '15px', marginRight: '8px', color: '#aaa' },
   input: { flex: 1, padding: '9px 0', border: 'none', outline: 'none', fontSize: '13px', fontFamily: 'Inter, sans-serif', color: '#333', background: 'transparent' },
