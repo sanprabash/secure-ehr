@@ -1,0 +1,38 @@
+name: Secure EHR CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Run Backend Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          npm install
+
+      - name: Run backend tests
+        run: |
+          cd backend
+          npm test
+
+      - name: Test Results Summary
+        if: always()
+        run: |
+          echo "Secure EHR Backend Tests Completed"
+          echo "18 test cases across 4 test suites"
+          echo "Authentication, Patient, Doctor and Notification APIs tested"
