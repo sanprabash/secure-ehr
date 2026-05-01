@@ -157,11 +157,11 @@ function ManageDoctors() {
 
               {success && (
                 <div style={styles.successMsg}>
-                  {success}
-                  {tempPassword && (
-                    <div style={styles.tempPasswordBox}>
-                      Temporary Password: <strong>{tempPassword}</strong>
-                    </div>
+                 {success}
+                 {tempPassword && (
+                   <div style={styles.tempPasswordBox}>
+                    ⚠️ Email could not be sent. Temporary Password: <strong>{tempPassword}</strong>
+                   </div>
                   )}
                 </div>
               )}

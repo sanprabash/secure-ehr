@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const MedicalRecord = require('../models/MedicalRecord');
+const sendDoctorCredentials = require('../utils/sendEmail');
 
 //  AUTH MIDDLEWARE 
 const auth = (req, res, next) => {
@@ -79,9 +80,18 @@ router.post('/doctors', auth, async (req, res) => {
 
     await doctor.save();
 
-    res.status(201).json({
-      message: `Doctor account created successfully. Temporary password: ${tempPassword}`,
+    // Send credentials email to doctor
+    const emailSent = await sendDoctorCredentials(
+      email,
+      `${firstName} ${lastName}`,
       tempPassword
+    );
+
+    res.status(201).json({
+      message: emailSent
+        ? `Doctor account created successfully. Login credentials have been sent to ${email}.`
+        : `Doctor account created successfully. Email could not be sent — temporary password: ${tempPassword}`,
+      tempPassword: emailSent ? null : tempPassword
     });
 
   } catch (error) {
