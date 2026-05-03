@@ -19,14 +19,16 @@ Secure EHR is a full-stack web application developed as a final year project for
 - AES-256-CBC file encryption before storage
 - Grant and revoke doctor access via consent management
 - View who accessed each record (audit trail)
-- Real-time notifications
-- Delete account and records
+- Real-time notifications with unread badge
+- Delete medical records and account
+- Forgot password via email reset link
 
 ### Doctor Portal
 - View patients who have granted consent
 - Add clinical notes and prescriptions
 - Decrypt and view patient files
 - Real-time notifications
+- Forgot password via email reset link
 
 ### Admin Portal
 - Add and remove doctors

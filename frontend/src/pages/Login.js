@@ -107,6 +107,13 @@ function Login() {
             </button>
           </form>
 
+          {/* FORGOT PASSWORD LINK */}
+          <div style={styles.forgotRow}>
+            <a href="/forgot-password" style={styles.forgotLink}>
+              Forgot your password?
+            </a>
+          </div>
+
           <div style={styles.divider}>
             <span style={styles.dividerLine}></span>
             <span style={styles.dividerText}>New to Secure EHR?</span>
@@ -129,7 +136,6 @@ const styles = {
     minHeight: '100vh',
     fontFamily: "'Inter', sans-serif"
   },
-  // LEFT
   left: {
     width: '42%',
     background: '#17a8c4',
@@ -197,7 +203,6 @@ const styles = {
     alignItems: 'center',
     gap: '10px'
   },
-  // RIGHT
   right: {
     width: '58%',
     background: 'white',
@@ -283,6 +288,16 @@ const styles = {
     cursor: 'pointer',
     marginTop: '8px',
     fontFamily: 'Inter, sans-serif'
+  },
+  forgotRow: {
+    textAlign: 'center',
+    marginTop: '14px'
+  },
+  forgotLink: {
+    fontSize: '13px',
+    color: '#17a8c4',
+    textDecoration: 'none',
+    fontWeight: '600'
   },
   divider: {
     display: 'flex',

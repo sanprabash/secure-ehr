@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const MedicalRecord = require('../models/MedicalRecord');
-const sendDoctorCredentials = require('../utils/sendEmail');
+const { sendDoctorCredentials } = require('../utils/sendEmail');
 
 //  AUTH MIDDLEWARE 
 const auth = (req, res, next) => {

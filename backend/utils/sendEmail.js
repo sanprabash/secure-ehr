@@ -8,6 +8,7 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+//  SEND DOCTOR CREDENTIALS 
 const sendDoctorCredentials = async (doctorEmail, doctorName, tempPassword) => {
   try {
     await transporter.sendMail({
@@ -65,4 +66,64 @@ const sendDoctorCredentials = async (doctorEmail, doctorName, tempPassword) => {
   }
 };
 
-module.exports = sendDoctorCredentials;
+//  SEND PASSWORD RESET EMAIL 
+const sendPasswordResetEmail = async (userEmail, firstName, resetLink) => {
+  try {
+    await transporter.sendMail({
+      from: `"Secure EHR System" <${process.env.EMAIL_USER}>`,
+      to: userEmail,
+      subject: 'Password Reset Request — Secure EHR',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: #2d6b70; padding: 24px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">Secure EHR</h1>
+            <p style="color: rgba(255,255,255,0.8); margin: 6px 0 0;">Smart Healthcare Record System</p>
+          </div>
+
+          <div style="padding: 32px; background-color: #f9f9f9;">
+            <h2 style="color: #222;">Password Reset Request</h2>
+            <p style="color: #555; line-height: 1.6;">
+              Hi ${firstName}, we received a request to reset your password.
+              Click the button below to set a new password.
+            </p>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetLink}"
+                style="background-color: #17a8c4; color: white; padding: 14px 32px;
+                text-decoration: none; border-radius: 10px; font-weight: bold;
+                font-size: 15px; display: inline-block;">
+                Reset My Password
+              </a>
+            </div>
+
+            <div style="background-color: #fff8e1; border-left: 4px solid #f59e0b;
+              padding: 14px; border-radius: 5px; margin-bottom: 24px;">
+              <p style="margin: 0; color: #92400e; font-size: 13px;">
+                ⚠️ This link expires in 1 hour. If you did not request a password reset,
+                please ignore this email.
+              </p>
+            </div>
+
+            <p style="color: #aaa; font-size: 12px;">
+              If the button does not work copy and paste this link into your browser:<br>
+              <a href="${resetLink}" style="color: #17a8c4;">${resetLink}</a>
+            </p>
+          </div>
+
+          <div style="background-color: #2d6b70; padding: 16px; text-align: center;">
+            <p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 12px;">
+              🔒 This is an automated message from Secure EHR. Do not reply to this email.
+            </p>
+          </div>
+        </div>
+      `
+    });
+    console.log(`Password reset email sent to ${userEmail}`);
+    return true;
+  } catch (error) {
+    console.error('Password reset email failed:', error);
+    return false;
+  }
+};
+
+module.exports = { sendDoctorCredentials, sendPasswordResetEmail };
